@@ -1,0 +1,114 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.impute import SimpleImputer
+
+# Load the CSV file
+filename = "/kaggle/input/waterqualitydataset/DatasetFinal.xlsx -Imbalanced.csv"
+df = pd.read_csv(filename)
+
+
+# Display a summary of the DataFrame
+print("\nSummary of the DataFrame:")
+print(df.info())
+
+# Generate descriptive statistics
+print("\nDescriptive statistics of the DataFrame:")
+print(df.describe())
+
+# Display the shape of the DataFrame
+print("\nShape of the DataFrame:")
+print(df.shape)
+
+for col in df.columns:
+    nan_percentage = df[col].isnull().mean() * 100
+    print(f"Nan Values in {col} is {nan_percentage:.2f}%")
+
+    # heatmap of missing values
+plt.figure(figsize=(16,10))
+sns.heatmap(df.isnull(), cbar=False, cmap="YlGnBu")
+plt.show()
+
+
+# Display the data types of each column in the DataFrame
+print("\nData types of each column:")
+print(df.dtypes)
+
+# Display the number of missing values in each column
+print("\nNumber of missing values in each column:")
+print(df.isnull().sum())
+
+df.fillna(df.median(), inplace=True)
+
+plt.figure(figsize=(10,6))
+df.isnull().sum().plot(kind='bar')
+plt.xlabel('Columns')
+plt.ylabel('Number of Missing Values')
+plt.title('Missing Values by Column')
+plt.show()
+
+
+
+# Get the column names
+column_names = df.columns.tolist()
+
+# Create a figure with subplots
+fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(15, 10))
+imputer = SimpleImputer(strategy='mean')
+df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+
+for i, col in enumerate(column_names):
+    row = i // 3
+    col_idx = i % 3
+    axs[row, col_idx].scatter(df[col], df_imputed[col])
+    axs[row, col_idx].set_xlabel("Original Values")
+    axs[row, col_idx].set_ylabel("Imputed Values")
+    axs[row, col_idx].set_title(f"Imputed Values vs. Original Values - {col}")
+
+# Show the plot
+plt.tight_layout()
+plt.show()
+
+# Create a figure and axis object
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+# Histogram of original values
+ax[0].hist(df[col], bins=50, alpha=0.5, label='Original Values')
+ax[0].set_title('Original Values')
+ax[0].set_xlabel('Value')
+ax[0].set_ylabel('Frequency')
+
+# Histogram of imputed values
+ax[1].hist(df_imputed[col], bins=50, alpha=0.5, label='Imputed Values')
+ax[1].set_title('Imputed Values')
+ax[1].set_xlabel('Value')
+ax[1].set_ylabel('Frequency')
+
+# Show the plot
+plt.show()
+
+# Check for missing values in the imputed DataFrame
+missing_values_count = df_imputed.isnull().sum()
+print("Missing values after imputation:")
+print(missing_values_count)
+
+# Check if there are any missing values
+if missing_values_count.any():
+    print("There are still missing values in the data.")
+else:
+    print("No missing values found in the data.")
+    
+for col in df.columns:
+    nan_percentage = df[col].isnull().mean() * 100
+    print(f"Nan Values in {col} is {nan_percentage:.2f}%")
+    
+# summary of the DataFrame after impute
+print("\nSummary of the DataFrame:")
+print(df.info())
+
+# heatmap after filling the dataset
+plt.figure(figsize=(16,10))
+sns.heatmap(df.isnull(), cbar=False, cmap="YlGnBu")
+plt.show()
