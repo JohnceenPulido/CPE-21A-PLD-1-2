@@ -1,0 +1,61 @@
+# Data for Bagging Adaboost
+data_bagging_adaboost = {
+    "Mean Squared Error": [0.037095426, 0.003078564, 7.04E-05, 0.043813576, 0.000952456, 0.064987705],
+    "R^2": [0.979176432, 0.978268305, 0.985725084, 0.774241098, 0.982697976, 0.983287056],
+    "Mean Absolute Error": [0.076905029, 0.022640984, 0.004725022, 0.034007284, 0.014727806, 0.114497155],
+    "Variance Score": [0.981048391, 0.984243925, 0.988223734, 0.86185064, 0.985569436, 0.986076943]
+}
+
+# Data for Bagging SVM
+data_bagging_svm = {
+    "Mean Squared Error": [0.156962613, 0.015521935, 0.004895025, 0.069027707, 0.010021464, 0.234176149],
+    "R^2": [0.915952661, 0.879449207, -1.878322134, -10.12754867, 0.515238788, 0.962887796],
+    "Mean Absolute Error": [0.105489479, 0.069213013, 0.064819072, 0.094931645, 0.082741512, 0.127530615],
+    "Variance Score": [0.924854948, 0.929635161, 0.656268662, 0.864629416, 0.9209735, 0.96948825]
+}
+
+# Data for Stacked Model
+data_stacked_model = {
+    "Mean Squared Error": [0.049241032, 0.002411736, 0.002281712, 0.050668477, 0.002375712, 0.117544637],
+    "R^2": [0.969463036, 0.977504094, 0.442189734, 0.19516424, 0.958665745, 0.968387951],
+    "Mean Absolute Error": [0.11404991, 0.0280382, 0.034582536, 0.055741578, 0.025273391, 0.169147961],
+    "Variance Score": [0.972935641, 0.984089529, 0.614821001, 0.650615721, 0.970354236, 0.973146638]
+}
+
+# Calculate averages for Bagging Adaboost
+averages_bagging_adaboost = {}
+for metric, values in data_bagging_adaboost.items():
+    average = sum(values) / len(values)
+    averages_bagging_adaboost[metric] = average
+
+# Calculate averages for Bagging SVM
+averages_bagging_svm = {}
+for metric, values in data_bagging_svm.items():
+    average = sum(values) / len(values)
+    averages_bagging_svm[metric] = average
+
+# Calculate averages for Stacked Model
+averages_stacked_model = {}
+for metric, values in data_stacked_model.items():
+    average = sum(values) / len(values)
+    averages_stacked_model[metric] = average
+
+# Define weights for each model (e.g., 0.5 for equal weight)
+weights = [0.5, 0.5]
+
+# Aggregate averages from Bagging Adaboost and Bagging SVM using weighted average
+aggregate_averages = {}
+for metric in averages_bagging_adaboost.keys():
+    aggregate_average = (weights[0] * averages_bagging_adaboost[metric] + 
+                         weights[1] * averages_bagging_svm[metric])
+    aggregate_averages[metric] = aggregate_average
+
+# Print aggregated averages
+print("Aggregated Averages of Bagging Adaboost and Bagging SVM:")
+for metric, average in aggregate_averages.items():
+    print(f"{metric}: {average:.6f}")
+
+# Print averages of Stacked Model
+print("\nAverages of Stacked Model:")
+for metric, average in averages_stacked_model.items():
+    print(f"{metric}: {average:.6f}")
