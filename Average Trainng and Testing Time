@@ -1,0 +1,50 @@
+# Data for Bagging Adaboost
+data_bagging_adaboost = {
+    "Training Time": [0.59475348, 0.514867926, 0.405053329, 0.394743299, 0.549615157, 0.568909538],
+    "Testing Time": [0.03546499, 0.030673993, 0.024624693, 0.024082565, 0.033327627, 0.034135997]
+}
+
+# Data for Bagging SVM
+data_bagging_svm = {
+    "Training Time": [0.016814125, 0.016866136, 0.016315746, 0.016806233, 0.016623247, 0.01692965],
+    "Testing Time": [0.002498603, 0.002552104, 0.002446699, 0.002476799, 0.002550113, 0.002557743]
+}
+
+# Data for Stacking Model
+data_stacking_model = {
+    "Training Time": [3.790548503, 3.353378761, 2.704393494, 2.712167132, 3.565648723, 3.625312686],
+    "Testing Time": [0.038471818, 0.033366442, 0.027413082, 0.026840043, 0.035041511, 0.037018192]
+}
+
+# Calculate averages for Bagging Adaboost
+averages_bagging_adaboost = {}
+for metric, values in data_bagging_adaboost.items():
+    average = sum(values) / len(values)
+    averages_bagging_adaboost[metric] = average
+
+# Calculate averages for Bagging SVM
+averages_bagging_svm = {}
+for metric, values in data_bagging_svm.items():
+    average = sum(values) / len(values)
+    averages_bagging_svm[metric] = average
+
+# Calculate averages for Stacking Model
+averages_stacking_model = {}
+for metric, values in data_stacking_model.items():
+    average = sum(values) / len(values)
+    averages_stacking_model[metric] = average
+
+# Aggregate averages from Bagging models
+aggregate_averages_bagging = {}
+for metric in averages_bagging_adaboost.keys():
+    aggregate_averages_bagging[metric] = (averages_bagging_adaboost[metric] + averages_bagging_svm[metric]) / 2
+
+
+print("Bagging Model (Adaboost and SVM) Training and Testing Time:")
+for metric, average in aggregate_averages_bagging.items():
+    print(f"{metric}: {average:.6f}")
+
+
+print("\nStacking Model Training and Testing Time:")
+for metric, average in averages_stacking_model.items():
+    print(f"{metric}: {average:.6f}")
