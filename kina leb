@@ -1,0 +1,196 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.svm import SVR
+from sklearn.ensemble import BaggingRegressor, StackingRegressor
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, explained_variance_score
+from sklearn.linear_model import Ridge
+from sklearn.neural_network import MLPRegressor
+import numpy as np
+from time import time
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.preprocessing import StandardScaler
+
+# Load the dataset
+filename = "/kaggle/input/dataset-with-year/FinalDatasetwithyear - Sheet1.csv"
+df = pd.read_csv(filename)
+
+# Preprocess the dataset with iterative imputer
+imputer = IterativeImputer(random_state=42)
+imputed_waterset = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+# Scale the data using StandardScaler
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(imputed_waterset)
+scaled_waterset = pd.DataFrame(scaled_data, columns=df.columns)
+
+# Define features and target
+Features = ['Water Temperature', 'Ammonia', 'Phosphate', 'Dissolved Oxygen', 'pH', 'Nitrate']
+Target = 'Phosphate'
+
+# Select features and target
+X = scaled_waterset[Features]
+y = scaled_waterset[Target]
+years = imputed_waterset['Year']
+
+# Split the dataset using the years
+X_train, y_train = X[years <= 2018], y[years <= 2018]
+X_val, y_val = X[(years >= 2019) & (years <= 2021)], y[(years >= 2019) & (years <= 2021)]
+X_test, y_test = X[years >= 2022], y[years >= 2022]
+
+print("Training set shape:", X_train.shape, y_train.shape)
+print("Validation set shape:", X_val.shape, y_val.shape)
+print("Testing set shape:", X_test.shape, y_test.shape)
+
+# Number of folds for k-fold
+n_splits = 20
+kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+# Lists to store metrics for each fold
+# Bagging SVM
+bagging_svm_mse_list = []
+bagging_svm_mae_list = []
+bagging_svm_r2_list = []
+bagging_svm_ev_list = []
+bagging_svm_rmse_list = []
+bagging_svm_train_time_list = []
+bagging_svm_test_time_list = []
+
+# Bagging Neural Network
+bagging_nn_mse_list = []
+bagging_nn_mae_list = []
+bagging_nn_r2_list = []
+bagging_nn_ev_list = []
+bagging_nn_rmse_list = []
+bagging_nn_train_time_list = []
+bagging_nn_test_time_list = []
+
+# Stacking model
+stacked_mse_list = []
+stacked_mae_list = []
+stacked_r2_list = []
+stacked_ev_list = []
+stacked_rmse_list = []
+stacked_train_time_list = []
+stacked_test_time_list = []
+
+# k-fold
+for train_index, val_index in kf.split(X_train):
+    X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
+    y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
+
+    # Bagging SVM model
+    bagging_svm_model = BaggingRegressor(estimator=SVR(), n_estimators=10, random_state=42)
+    start_time = time()  
+    bagging_svm_model.fit(X_train_fold, y_train_fold)
+    end_time = time()  
+    train_time = end_time - start_time 
+    bagging_svm_train_time_list.append(train_time)
+    
+    # Bagging SVM Evaluation
+    y_pred_bagging_svm = bagging_svm_model.predict(X_val_fold)
+    bagging_svm_mse = mean_squared_error(y_val_fold, y_pred_bagging_svm)
+    bagging_svm_rmse = np.sqrt(bagging_svm_mse)  
+    bagging_svm_mae = mean_absolute_error(y_val_fold, y_pred_bagging_svm)
+    bagging_svm_r2 = r2_score(y_val_fold, y_pred_bagging_svm)
+    bagging_svm_ev = explained_variance_score(y_val_fold, y_pred_bagging_svm)
+    bagging_svm_mse_list.append(bagging_svm_mse)
+    bagging_svm_rmse_list.append(bagging_svm_rmse) 
+    bagging_svm_mae_list.append(bagging_svm_mae)
+    bagging_svm_r2_list.append(bagging_svm_r2)
+    bagging_svm_ev_list.append(bagging_svm_ev)
+
+    # Bagging SVM Testing time
+    start_time = time()
+    y_pred_bagging_svm_test = bagging_svm_model.predict(X_test)
+    end_time = time()
+    test_time = end_time - start_time
+    bagging_svm_test_time_list.append(test_time)
+
+    # Bagging Neural Network model
+    nn_model = MLPRegressor(hidden_layer_sizes=(100, 100), max_iter=500, random_state=42)
+    bagging_nn_model = BaggingRegressor(estimator=nn_model, n_estimators=10, random_state=42)
+    start_time = time()  
+    bagging_nn_model.fit(X_train_fold, y_train_fold)
+    end_time = time()  
+    train_time = end_time - start_time  
+    bagging_nn_train_time_list.append(train_time)  
+    
+    # Bagging Neural Network Evaluation
+    y_pred_bagging_nn = bagging_nn_model.predict(X_val_fold)
+    bagging_nn_mse = mean_squared_error(y_val_fold, y_pred_bagging_nn)
+    bagging_nn_rmse = np.sqrt(bagging_nn_mse)  
+    bagging_nn_mae = mean_absolute_error(y_val_fold, y_pred_bagging_nn)
+    bagging_nn_r2 = r2_score(y_val_fold, y_pred_bagging_nn)
+    bagging_nn_ev = explained_variance_score(y_val_fold, y_pred_bagging_nn)
+    bagging_nn_mse_list.append(bagging_nn_mse)
+    bagging_nn_rmse_list.append(bagging_nn_rmse)  
+    bagging_nn_mae_list.append(bagging_nn_mae)
+    bagging_nn_r2_list.append(bagging_nn_r2)
+    bagging_nn_ev_list.append(bagging_nn_ev)
+    
+    # Bagging Neural Network Testing time
+    start_time = time()
+    y_pred_bagging_nn_test = bagging_nn_model.predict(X_test)
+    end_time = time()
+    test_time = end_time - start_time
+    bagging_nn_test_time_list.append(test_time)
+    
+    # Stacked model
+    stacked_model = StackingRegressor(estimators=[('bagging_svm', bagging_svm_model), ('bagging_nn', bagging_nn_model)], final_estimator=Ridge())
+    start_time = time()  
+    stacked_model.fit(X_train_fold, y_train_fold)
+    end_time = time()  
+    train_time = end_time - start_time  
+    stacked_train_time_list.append(train_time)  
+    
+    # Stacked model Evaluation
+    y_pred_stacked = stacked_model.predict(X_val_fold)
+    stacked_mse = mean_squared_error(y_val_fold, y_pred_stacked)
+    stacked_rmse = np.sqrt(stacked_mse)  
+    stacked_mae = mean_absolute_error(y_val_fold, y_pred_stacked)
+    stacked_r2 = r2_score(y_val_fold, y_pred_stacked)
+    stacked_ev = explained_variance_score(y_val_fold, y_pred_stacked)
+    stacked_mse_list.append(stacked_mse)
+    stacked_rmse_list.append(stacked_rmse)  
+    stacked_mae_list.append(stacked_mae)
+    stacked_r2_list.append(stacked_r2)
+    stacked_ev_list.append(stacked_ev)
+
+    # Stacked model Testing time
+    start_time = time()
+    y_pred_stacked_test = stacked_model.predict(X_test)
+    end_time = time()
+    test_time = end_time - start_time
+    stacked_test_time_list.append(test_time)
+
+# Print the average metrics
+print("Bagging SVM:")
+print("MSE:", np.mean(bagging_svm_mse_list))
+print("MAE:", np.mean(bagging_svm_mae_list))
+print("R^2:", np.mean(bagging_svm_r2_list))
+print("RMSE:", np.mean(bagging_svm_rmse_list))
+print("EV:", np.mean(bagging_svm_ev_list))
+print("Bagging SVM Training and Testing Time")
+print("Training Time:", np.mean(bagging_svm_train_time_list))
+print("Testing Time:", np.mean(bagging_svm_test_time_list))
+
+print("Bagging Neural Network:")  
+print("MSE:", np.mean(bagging_nn_mse_list))
+print("MAE:", np.mean(bagging_nn_mae_list))
+print("R^2:", np.mean(bagging_nn_r2_list))
+print("RMSE:", np.mean(bagging_nn_rmse_list))
+print("EV:", np.mean(bagging_nn_ev_list))
+print("Bagging Neural Network Training and Testing Time")
+print("Training Time:", np.mean(bagging_nn_train_time_list))
+print("Testing Time:", np.mean(bagging_nn_test_time_list))
+
+print("Stacked Model:")  
+print("MSE:", np.mean(stacked_mse_list))
+print("MAE:", np.mean(stacked_mae_list))
+print("R^2:", np.mean(stacked_r2_list))
+print("RMSE:", np.mean(stacked_rmse_list))
+print("EV:", np.mean(stacked_ev_list))
+print("Stacking Training and Testing Time")
+print("Training Time:", np.mean(stacked_train_time_list))
+print("Testing Time:", np.mean(stacked_test_time_list))
