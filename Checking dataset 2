@@ -1,0 +1,61 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.svm import SVR
+from sklearn.ensemble import AdaBoostRegressor, BaggingRegressor, StackingRegressor
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, explained_variance_score
+from sklearn.linear_model import Ridge
+import numpy as np
+from time import time
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.preprocessing import StandardScaler
+
+# Load the dataset
+filename = "/kaggle/input/dataset-with-year/FinalDatasetwithyear - Sheet1.csv"
+df = pd.read_csv(filename)
+
+
+# Preprocess the dataset with iterative imputer
+imputer = IterativeImputer(random_state=42)
+imputed_waterset = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
+
+# Scale the data using StandardScaler
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(imputed_df)
+scaled_waterset = pd.DataFrame(scaled_data, columns=df.columns)
+
+# Select the target column
+X = scaled_waterset.drop([ 'Year'], axis=1) # This is to remove the year column
+y = scaled_waterset['pH']
+years = imputed_waterset['Year']
+
+# Summary statistics before imputation
+print("Dataset Summary Before Imputation:")
+print(df.describe())
+
+# Histograms of features before imputation
+df.hist(figsize=(15, 10))
+plt.suptitle('Histograms of Features Before Imputation', y=1.02, size=16)
+plt.tight_layout()
+plt.show()
+
+# Summary statistics after imputation and scaling
+print("\nImputed and Scaled Dataset Summary:")
+print(scaled_waterset.describe())
+
+# Histograms of features after imputation and scaling
+scaled_waterset.hist(figsize=(15, 10))
+plt.suptitle('Histograms of Features After Imputation and Scaling', y=1.02, size=16)
+plt.tight_layout()
+plt.show()
+
+# Tables of data before and after imputation (you may need to adjust columns displayed)
+print("\nSample of Data Before Imputation:")
+print(df.head())
+
+print("\nSample of Data After Imputation and Scaling:")
+print(scaled_waterset.head())
+# Print a sample of the imputed dataset for 20 columns and rows
+print("\nGeneration of New Imputed Dataset:")
+print(imputed_waterset.iloc[:20, :20])  # Adjust the number of columns as needed
