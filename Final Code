@@ -24,16 +24,13 @@ scaler = StandardScaler()
 scaled_data = scaler.fit_transform(imputed_df)
 scaled_waterset = pd.DataFrame(scaled_data, columns=df.columns)
 
-# Define features and target
-Features = ['Water Temperature', 'Ammonia', 'Phosphate', 'Dissolved Oxygen', 'pH', 'Nitrate']
-Target = 'Nitrate'
-
-# Select features and target
-X = scaled_waterset[Features]
-y = scaled_waterset[Target]
+# Select the target column
+X = scaled_waterset.drop([ 'Year'], axis=1) # This is to remove the year column
+y = scaled_waterset['pH']
 years = imputed_waterset['Year']
 
-# Split the dataset using the years
+
+# Spliting the dataset using the years
 X_train = X[years <= 2018]
 y_train = y[years <= 2018]
 X_val = X[(years >= 2019) & (years <= 2021)]
@@ -44,6 +41,7 @@ y_test = y[years >= 2022]
 print("Training set shape:", X_train.shape, y_train.shape)
 print("Validation set shape:", X_val.shape, y_val.shape)
 print("Testing set shape:", X_test.shape, y_test.shape)
+
 # Number of folds for k-fold
 n_splits = 20
 kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
