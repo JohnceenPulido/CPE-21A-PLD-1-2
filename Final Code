@@ -1,167 +1,43 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split, KFold
-from sklearn.svm import SVR
-from sklearn.ensemble import AdaBoostRegressor, BaggingRegressor, StackingRegressor
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, explained_variance_score
-from sklearn.linear_model import Ridge
-import numpy as np
-from time import time
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer
-from sklearn.preprocessing import StandardScaler
-
-# Load the dataset
-filename = "/kaggle/input/dataset-with-year/FinalDatasetwithyear - Sheet1.csv"
-df = pd.read_csv(filename)
-
-
-# Preprocess the dataset with iterative imputer
-imputer = IterativeImputer(random_state=42)
-imputed_waterset = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
-
-# Scale the data using StandardScaler
-scaler = StandardScaler()
-scaled_data = scaler.fit_transform(imputed_df)
-scaled_waterset = pd.DataFrame(scaled_data, columns=df.columns)
-
-# Select the target column
-X = scaled_waterset.drop([ 'Year'], axis=1) # This is to remove the year column
-y = scaled_waterset['pH']
-years = imputed_waterset['Year']
-
-
-# Spliting the dataset using the years
-X_train = X[years <= 2018]
-y_train = y[years <= 2018]
-X_val = X[(years >= 2019) & (years <= 2021)]
-y_val = y[(years >= 2019) & (years <= 2021)]
-X_test = X[years >= 2022]
-y_test = y[years >= 2022]
-
-print("Training set shape:", X_train.shape, y_train.shape)
-print("Validation set shape:", X_val.shape, y_val.shape)
-print("Testing set shape:", X_test.shape, y_test.shape)
-
-# Number of folds for k-fold
-n_splits = 20
-kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-
-# Lists to store metrics for each fold
-#bagging svm
-bagging_svm_mse_list = []
-bagging_svm_mae_list = []
-bagging_svm_r2_list = []
-bagging_svm_ev_list = []
-bagging_svm_rmse_list = []
-bagging_svm_train_time_list = []
-bagging_svm_test_time_list = []
-#bagging adabost
-bagging_adaboost_mse_list = []
-bagging_adaboost_mae_list = []
-bagging_adaboost_r2_list = []
-bagging_adaboost_ev_list = []
-bagging_adaboost_rmse_list = []
-bagging_adaboost_train_time_list = []
-bagging_adaboost_test_time_list = []
-#stacking model
-stacked_mse_list = []
-stacked_mae_list = []
-stacked_r2_list = []
-stacked_ev_list = []
-stacked_rmse_list = []
-stacked_train_time_list = []
-stacked_test_time_list = []
-
-# k-fold
-for train_index, val_index in kf.split(X_train):
-    X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
-    y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
-
-    # This is Bagging SVM model
-    bagging_svm_model = BaggingRegressor(estimator=SVR(), n_estimators=10, random_state=42)
-    start_time = time()  
-    bagging_svm_model.fit(X_train_fold, y_train_fold)
-    end_time = time()  
-    train_time = end_time - start_time 
-    bagging_svm_train_time_list.append(train_time)
-    
-    # This is for bagging SVM Evaluation
-    y_pred_bagging_svm = bagging_svm_model.predict(X_val_fold)
-    bagging_svm_mse = mean_squared_error(y_val_fold, y_pred_bagging_svm)
-    bagging_svm_rmse = np.sqrt(bagging_svm_mse)  
-    bagging_svm_mae = mean_absolute_error(y_val_fold, y_pred_bagging_svm)
-    bagging_svm_r2 = r2_score(y_val_fold, y_pred_bagging_svm)
-    bagging_svm_ev = explained_variance_score(y_val_fold, y_pred_bagging_svm)
-    bagging_svm_mse_list.append(bagging_svm_mse)
-    bagging_svm_rmse_list.append(bagging_svm_rmse) 
-    bagging_svm_mae_list.append(bagging_svm_mae)
-    bagging_svm_r2_list.append(bagging_svm_r2)
-    bagging_svm_ev_list.append(bagging_svm_ev)
-
-    # This is for bagging SVM Testing time
-    start_time = time()
+ # This inlcudes the performance while using the test set
+    # Predict on the test set for Bagging SVM
     y_pred_bagging_svm_test = bagging_svm_model.predict(X_test)
-    end_time = time()
-    test_time = end_time - start_time
-    bagging_svm_test_time_list.append(test_time)
+    bagging_svm_test_predictions.append(y_pred_bagging_svm_test)
 
-    # Bagging AdaBoost model
-    bagging_adaboost_model = BaggingRegressor(estimator=AdaBoostRegressor(), n_estimators=10, random_state=42)
-    start_time = time()  
-    bagging_adaboost_model.fit(X_train_fold, y_train_fold)
-    end_time = time()  
-    train_time = end_time - start_time  
-    bagging_adaboost_train_time_list.append(train_time)  
-    
-    #This is for bagging adaboost model Evaluation
-    y_pred_bagging_adaboost = bagging_adaboost_model.predict(X_val_fold)
-    bagging_adaboost_mse = mean_squared_error(y_val_fold, y_pred_bagging_adaboost)
-    bagging_adaboost_rmse = np.sqrt(bagging_adaboost_mse)  
-    bagging_adaboost_mae = mean_absolute_error(y_val_fold, y_pred_bagging_adaboost)
-    bagging_adaboost_r2 = r2_score(y_val_fold, y_pred_bagging_adaboost)
-    bagging_adaboost_ev = explained_variance_score(y_val_fold, y_pred_bagging_adaboost)
-    bagging_adaboost_mse_list.append(bagging_adaboost_mse)
-    bagging_adaboost_rmse_list.append(bagging_adaboost_rmse)  
-    bagging_adaboost_mae_list.append(bagging_adaboost_mae)
-    bagging_adaboost_r2_list.append(bagging_adaboost_r2)
-    bagging_adaboost_ev_list.append(bagging_adaboost_ev)
-    
-    # This is for bagging adaboost Testing time
-    start_time = time()
+    # Predict on the test set for Bagging AdaBoost
     y_pred_bagging_adaboost_test = bagging_adaboost_model.predict(X_test)
-    end_time = time()
-    test_time = end_time - start_time
-    bagging_adaboost_test_time_list.append(test_time)
-    
-    # This is the Stacked model
-    stacked_model = StackingRegressor(estimators=[('bagging_svm', bagging_svm_model), ('bagging_adaboost', bagging_adaboost_model)], final_estimator=Ridge())
-    start_time = time()  
-    stacked_model.fit(X_train_fold, y_train_fold)
-    end_time = time()  
-    train_time = end_time - start_time  
-    stacked_train_time_list.append(train_time)  
-    
-    # This is for stacking model Evaluation
-    y_pred_stacked = stacked_model.predict(X_val_fold)
-    stacked_mse = mean_squared_error(y_val_fold, y_pred_stacked)
-    stacked_rmse = np.sqrt(stacked_mse)  
-    stacked_mae = mean_absolute_error(y_val_fold, y_pred_stacked)
-    stacked_r2 = r2_score(y_val_fold, y_pred_stacked)
-    stacked_ev = explained_variance_score(y_val_fold, y_pred_stacked)
-    stacked_mse_list.append(stacked_mse)
-    stacked_rmse_list.append(stacked_rmse)  
-    stacked_mae_list.append(stacked_mae)
-    stacked_r2_list.append(stacked_r2)
-    stacked_ev_list.append(stacked_ev)
+    bagging_adaboost_test_predictions.append(y_pred_bagging_adaboost_test)
 
-    # This is for stacking model Testing time
-    start_time = time()
+    # Predict on the test set for Stacked model
     y_pred_stacked_test = stacked_model.predict(X_test)
-    end_time = time()
-    test_time = end_time - start_time
-    stacked_test_time_list.append(test_time)
+    stacked_model_test_predictions.append(y_pred_stacked_test)
+    
+    # Average predictions across folds
+bagging_svm_avg_test_prediction = np.mean(bagging_svm_test_predictions, axis=0)
+bagging_adaboost_avg_test_prediction = np.mean(bagging_adaboost_test_predictions, axis=0)
+stacked_model_avg_test_prediction = np.mean(stacked_model_test_predictions, axis=0)
 
-# Print the average metrics
+    # Evaluate performance on the test set
+    # This is for the baggingg svm test
+bagging_svm_test_mse = mean_squared_error(y_test, bagging_svm_avg_test_prediction)
+bagging_svm_test_rmse = np.sqrt(bagging_svm_test_mse)
+bagging_svm_test_mae = mean_absolute_error(y_test, bagging_svm_avg_test_prediction)
+bagging_svm_test_r2 = r2_score(y_test, bagging_svm_avg_test_prediction)
+bagging_svm_test_ev = explained_variance_score(y_test, bagging_svm_avg_test_prediction)
+  # This is for the bagging adaboost test
+bagging_adaboost_test_mse = mean_squared_error(y_test, bagging_adaboost_avg_test_prediction)
+bagging_adaboost_test_rmse = np.sqrt(bagging_adaboost_test_mse)
+bagging_adaboost_test_mae = mean_absolute_error(y_test, bagging_adaboost_avg_test_prediction)
+bagging_adaboost_test_r2 = r2_score(y_test, bagging_adaboost_avg_test_prediction)
+bagging_adaboost_test_ev = explained_variance_score(y_test, bagging_adaboost_avg_test_prediction)
+  # This is for stacked model test
+stacked_model_test_mse = mean_squared_error(y_test, stacked_model_avg_test_prediction)
+stacked_model_test_rmse = np.sqrt(stacked_model_test_mse)
+stacked_model_test_mae = mean_absolute_error(y_test, stacked_model_avg_test_prediction)
+stacked_model_test_r2 = r2_score(y_test, stacked_model_avg_test_prediction)
+stacked_model_test_ev = explained_variance_score(y_test, stacked_model_avg_test_prediction)
+
+
+# Print the result of metrics after using the validation set
 print("Bagging SVM:") #This is for bagging SVM
 print("MSE:", np.mean(bagging_svm_mse_list))
 print("MAE:", np.mean(bagging_svm_mae_list))
@@ -191,3 +67,26 @@ print("EV:", np.mean(stacked_ev_list))
 print("Stacking Training and Testing Time")
 print("Training Time:", np.mean(stacked_train_time_list))
 print("Testing Time:", np.mean(stacked_test_time_list))
+
+
+# Print the test set metrics after using the test set
+print("Bagging SVM Test Set Metrics:")
+print("MSE:", bagging_svm_test_mse)
+print("RMSE:", bagging_svm_test_rmse)
+print("MAE:", bagging_svm_test_mae)
+print("R^2:", bagging_svm_test_r2)
+print("Explained Variance:", bagging_svm_test_ev)
+
+print("\nBagging AdaBoost Test Set Metrics:")
+print("MSE:", bagging_adaboost_test_mse)
+print("RMSE:", bagging_adaboost_test_rmse)
+print("MAE:", bagging_adaboost_test_mae)
+print("R^2:", bagging_adaboost_test_r2)
+print("Explained Variance:", bagging_adaboost_test_ev)
+
+print("\nStacked Model Test Set Metrics:")
+print("MSE:", stacked_model_test_mse)
+print("RMSE:", stacked_model_test_rmse)
+print("MAE:", stacked_model_test_mae)
+print("R^2:", stacked_model_test_r2)
+print("Explained Variance:", stacked_model_test_ev)
