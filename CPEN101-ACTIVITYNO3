@@ -1,0 +1,140 @@
+import pandas as pd  # using this library to manipulate the dataset we have
+import numpy as np  # import numpy to perform our needed numerical computing in the data
+import matplotlib.pyplot as plt # using this to visualize the results by using charts (line, bar, box, and other)
+import seaborn as sns # another visualization library
+from scipy.stats import f_oneway # function to perform the ANOVA testing
+import statsmodels.api as sm # to perform statistical modeling, estimation, and hypothesis testing.
+
+# Loading the dataset
+file_path = '/kaggle/input/americancitizenincome/income.csv'  
+data = pd.read_csv(file_path)
+
+# First step is the data pre-processing
+# This is the overview of our dataset 
+print("Dataset Overview")
+print(data.head())
+print("\nData Types")
+print(data.dtypes)
+
+# Checking for missing values
+data.replace('?', np.nan, inplace=True) # The missing values has ? instead of NAN , we converted it since we will fill those missing values
+columns_to_check = ['age', 'workclass', 'fnlwgt', 'education', 'education.num', 'marital.status', 'occupation', 
+                    'relationship', 'race', 'sex', 'capital.gain', 'capital.loss', 'hours.per.week', 'native.country', 'income']  # checking each column
+print("Missing Values in each Columns:\n")  
+missing_values = data[columns_to_check].isnull().sum()
+print(missing_values)
+
+for column in columns_to_check:
+    if missing_values[column] > 0:  # to check if  there are missing values
+        if data[column].dtype == 'object':  # checking if the column is categorical
+            mode_value = data[column].mode()[0]  # Calculate mode
+            data[column].fillna(mode_value, inplace=True)  # Replace missing values with mode
+        else:  # If the column is numerical
+            mean_value = data[column].mean()  # Calculate mean
+            data[column].fillna(mean_value, inplace=True)  # Replace missing values with mean
+
+# Verify that missing values are handled
+print("\nMissing Values After Handling:\n")
+print(data[columns_to_check].isnull().sum())
+    
+# Categorize education levels to Low, Medium, and High since the dataset do not have numerical value for each category
+education_mapping = {
+    'HS-grad': 'Low',
+    'Some-college': 'Medium',
+    'Bachelors': 'High',
+}
+
+data['Level_of_Education'] = data['education'].map(education_mapping)
+data['income_numeric'] = data['income'].apply(lambda x: 1 if x.strip() == '>50K' else 0)  # categorize the income for numerical analysis (0 for <=50K, 1 for >50K)
+
+# This is our hypothesis:
+# - Null Hypothesis (H0): The mean income is the same across all education levels.
+# - Alternative Hypothesis (H1): At least one education level group has a significantly different mean income.
+
+# Split income data by education levels
+low_income = data[data['Level_of_Education'] == 'Low']['income_numeric'] # each level of education will be categorize to a level of income
+medium_income = data[data['Level_of_Education'] == 'Medium']['income_numeric']
+high_income = data[data['Level_of_Education'] == 'High']['income_numeric']
+
+# Print the specific Hypotheses
+print("ANOVA for Hypothesis")
+print("1. Null Hypothesis (H0): The mean income is the same across all education levels.")
+print("2. Alternative Hypothesis (H1): The mean income has a significant difference across all education levels.")
+
+# Perform ANOVA
+anova_stat, anova_p_value = f_oneway(low_income, medium_income, high_income)   # this performs the ANOVA, anova_stat is the F statistic and p value determine whether the results are statistically significant.
+print(f"\n ANOVA Results")
+print(f"F-Statistic = {anova_stat:.2f}, P-Value = {anova_p_value:.4f}")
+if anova_p_value < 0.05:
+    print("Result: Reject the null hypothesis. There is a significant difference in mean income across education levels.")  # display the result
+else:
+    print("Result: Fail to reject the null hypothesis. There is no significant difference in mean income across education levels.")
+
+# These are the visualizations of the results
+# Line Chart for ANOVA
+mean_income = data.groupby('Level_of_Education')['income_numeric'].mean().reset_index()
+plt.figure(figsize=(8, 6))
+sns.lineplot(data=mean_income, x='Level_of_Education', y='income_numeric', marker='o', color='blue')
+plt.title('Mean Income by Education Level (ANOVA)')
+plt.xlabel('Education Level')
+plt.ylabel('Mean Income (Proportion >50K)')
+plt.grid(True)
+plt.show()
+# Visualize the Mean Income of Education Level using a bar graph
+mean_income = data.groupby('Level_of_Education')['income_numeric'].mean()
+plt.figure(figsize=(8, 6))
+sns.barplot(x=mean_income.index, y=mean_income.values, palette='viridis')
+plt.title('Mean Income by Education Level')
+plt.xlabel('Education Level')
+plt.ylabel('Mean Income (Proportion >50K)')
+plt.ylim(0, 1)
+plt.show()
+# Visualize using Box Plot
+plt.figure(figsize=(8, 6))
+sns.boxplot(x='Level_of_Education', y='income_numeric', data=data, palette='coolwarm')
+plt.title('Income Distribution by Education Level (ANOVA)')
+plt.xlabel('Education Level')
+plt.ylabel('Income (0: <=50K, 1: >50K)')
+plt.grid(True)
+plt.show()
+
+# The numerical result of mean income for each education level
+# Calculate mean income by education level
+mean_income = data.groupby('Level_of_Education')['income_numeric'].mean().reset_index()  # This groups the dataset by the Level_of_Education column and calculates their mean
+mean_income['education_numeric'] = mean_income['Level_of_Education'].map({'Low': 0, 'Medium': 1, 'High': 2}) # This categorizes the level of education to 0,1, and 2
+print("\n Mean Income by Education Level ")
+print(mean_income)
+
+# Setting up the data for the Logistic Regression
+y = mean_income['income_numeric'].astype(int)  # make sure that the mean income is binary (0 or 1)
+X = mean_income['education_numeric']  # This is the independent variable (education levels)
+y = mean_income['income_numeric']     # This is the dependent variable (income)
+
+# Add constant to the model
+X = sm.add_constant(X) # This adds a constant term (intercept) to the feature matrix X for the logistic regression mode to make sure the outcome wont equal to zero
+
+# Fit the logistic regression model
+logit_model = sm.Logit(y, X).fit() # This initializes the dependent and independent variable
+
+# Display the summary or the result of the logistic regression model
+print("\nLogistic Regression Results:")
+print(logit_model.summary())
+
+# Visualize the regression results using a scatter plot with a logistic regression curve
+plt.figure(figsize=(8, 6))
+# Plotting the logistic regression curve with 'education_numeric' and 'income_numeric' implementing the sns library
+sns.regplot(
+    x='education_numeric', y='income_numeric', 
+    data=mean_income, logistic=True, 
+    ci=None, color='royalblue', marker='o', 
+    line_kws={'color': 'orange', 'linewidth': 2},  # Customize the logistic regression curve color and thickness
+    scatter_kws={'s': 100, 'facecolors': 'lightcoral', 'edgecolors': 'black', 'alpha': 0.7}  # Customize scatter points
+)
+# Setting the title and labels
+plt.title('Logistic Regression: Mean Income vs. Education Level', fontsize=14)
+plt.xlabel('Education Level (Low=0, Medium=1, High=2)', fontsize=12)
+plt.ylabel('Probability of Income > 50K', fontsize=12)
+plt.ylim(0, 1)  # Ensuring the y-axis stays between 0 and 1 for the logistic curve
+plt.grid(True, linestyle='--', alpha=0.7) # Adding gridlines for better readability
+plt.legend(['Regression Curve', 'Observed Data'], loc='upper right', bbox_to_anchor=(1, 1), fontsize=12, fancybox=True) # Adding a legend
+plt.show() # this last line is to show the plot
