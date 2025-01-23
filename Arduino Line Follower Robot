@@ -1,0 +1,140 @@
+#include <AFMotor.h>
+
+// Define sensor pins
+#define DEBUG_PRINT 0
+#define LEFT_IR A0
+#define RIGHT_IR A1
+
+// Define motors
+#define DETECT_LIMIT 300
+#define FORWARD_SPEED 60
+#define TURN_SHARP_SPEED 150
+#define TURN_SLIGHT_SPEED 120
+#define DELAY_AFTER_TURN 140
+#define BEFORE_TURN_DELAY 10
+
+AF_DCMotor motorL(3);
+AF_DCMotor motorR(4);
+
+int left_value;
+int right_value;
+
+char lastDirection = '5';
+
+void setup() {
+  #if DEBUG_PRINT
+    Serial.begin(9600);
+  #endif
+
+  motorL.setSpeed(0);
+  motorL.run(RELEASE);
+  motorR.setSpeed(0);
+  motorR.run(RELEASE);
+
+  motorR.run(FORWARD);
+  motorL.run(FORWARD);
+  motorL.setSpeed(255);
+  motorR.setSpeed(225);
+  delay(40);
+}
+
+void loop(){
+  left_value = analogRead(LEFT_IR);
+  right_value = analogRead(RIGHT_IR);
+
+  #if DEBUG_PRINT
+    Serial.print(left_value);
+    Serial.print(",");
+    Serial.print(right_value);
+    Serial.print(",");
+    Serial.print(lastDirection);
+    Serial.write(10);
+  #endif
+
+  // Right Sensor detects black line and left does not detect
+  if (right_value >= DETECT_LIMIT && !(left_value >= DETECT_LIMIT)) {
+    turnRight();
+  }
+  // Left Sensor detects black line and right does not detect
+  else if ((left_value >= DETECT_LIMIT) && !(right_value >= DETECT_LIMIT)) {
+    turnLeft();
+  }
+  // both sensors doesn't detect black line
+  else if (!(left_value >= DETECT_LIMIT) && !(right_value >= DETECT_LIMIT)) {
+    moveForward();
+  }
+  // both sensors detect black line
+  else if ((left_value >= DETECT_LIMIT) && (right_value >= DETECT_LIMIT)) {
+    stop();
+  }
+}
+
+void moveForward() {
+  if (lastDirection != 'F') {
+    motorR.run(FORWARD);
+    motorL.run(FORWARD);
+    motorL.setSpeed(225);
+    motorR.setSpeed(225);
+    lastDirection = 'F';
+    delay(20);
+  } else {
+    motorR.run(FORWARD);
+    motorL.run(FORWARD);
+    motorL.setSpeed(FORWARD_SPEED);
+    motorR.setSpeed(FORWARD_SPEED);
+  }
+}
+
+void stop() {
+  if (lastDirection != 'S') {
+    motorR.setSpeed(225);
+    motorL.setSpeed(225);
+    motorL.run(FORWARD);
+    motorR.run(FORWARD);
+    lastDirection = 'S';
+    delay(40);
+  } else {
+    motorL.setSpeed(0);
+    motorR.setSpeed(0);
+    motorL.run(RELEASE);
+    motorR.run(RELEASE);
+    lastDirection = 'S';
+  }
+}
+
+void turnRight(void) {
+  if (lastDirection != 'R') {
+    lastDirection = 'R';
+    motorL.setSpeed(0);
+    motorR.setSpeed(0);
+    delay(BEFORE_TURN_DELAY);
+    motorL.run(FORWARD);
+    motorR.run(BACKWARD);
+    motorL.setSpeed(TURN_SLIGHT_SPEED);
+    motorR.setSpeed(TURN_SLIGHT_SPEED);
+  } else {
+    motorL.run(FORWARD);
+    motorR.run(BACKWARD);
+    motorL.setSpeed(TURN_SHARP_SPEED);
+    motorR.setSpeed(TURN_SHARP_SPEED);
+  }
+  delay(DELAY_AFTER_TURN);
+}
+
+void turnLeft() {
+  if (lastDirection != 'L') {
+    lastDirection = 'L';
+    motorL.setSpeed(0);
+    motorR.setSpeed(0);
+    delay(BEFORE_TURN_DELAY);
+    motorR.run(FORWARD);
+    motorL.run(BACKWARD);
+    motorL.setSpeed(TURN_SLIGHT_SPEED);
+    motorR.setSpeed(TURN_SLIGHT_SPEED);
+  } else {
+    motorR.run(FORWARD);
+    motorL.run(BACKWARD);
+    motorL.setSpeed(TURN_SHARP_SPEED);
+    motorR.setSpeed(TURN_SHARP_SPEED);
+  }
+  delay(DELAY_AFTER_TURN);
